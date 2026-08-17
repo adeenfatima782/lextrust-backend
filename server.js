@@ -8,8 +8,10 @@ const connectDB = require('./config/db')
 const app = express()
 
 // ---- DB ----
-connectDB()
-
+// ---- DB ----
+connectDB().catch((err) => {
+  console.error('❌ Database connection failed:', err.message)
+})
 // ---- Core middleware ----
 app.use(express.json())
 
