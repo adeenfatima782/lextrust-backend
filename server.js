@@ -13,7 +13,7 @@ connectDB()
 // ---- Core middleware ----
 app.use(express.json())
 
-// ---- Uploaded images (admin-picked photos for lawyers/testimonials) ----
+// ---- Uploaded images ----
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || '')
@@ -24,31 +24,45 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || '')
 app.use(
   cors({
     origin: function (origin, callback) {
-      // No origin (Postman/curl/server-to-server) — allow
+      // Allow requests with no origin (Postman, mobile apps, server-to-server)
       if (!origin) return callback(null, true)
-      // Any localhost/127.0.0.1 port — always allow in dev, so Vite can
-      // pick any free port (5173, 5174, 5175, ...) without editing .env
+      
+      // Allow localhost/127.0.0.1 ports for local development
       if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return callback(null, true)
-      // Otherwise must be explicitly listed in CLIENT_ORIGIN (used in production)
-      if (allowedOrigins.includes(origin)) return callback(null, true)
+      
+      // Production origins check
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+      
       return callback(new Error('Not allowed by CORS'))
     },
     credentials: true,
   })
 )
 
-// Basic rate limiting for public form endpoints (anti-spam)
+// Basic rate limiting for public form endpoints
 const formLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
   message: { success: false, message: 'Too many requests, please try again later.' },
 })
+
 app.use('/api/contact', formLimiter)
 app.use('/api/newsletter', formLimiter)
 
-// ---- Routes ----
+// ---- Root / Health Check Routes ----
+// Prevents Vercel 404 on base URL hit
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'LexTrust API is running live on Vercel!'
+  })
+})
+
 app.get('/api/health', (req, res) => res.json({ success: true, message: 'LexTrust API is running' }))
 
+// ---- Routes ----
 app.use('/api/auth', require('./routes/auth'))
 app.use('/api/contact', require('./routes/contact'))
 app.use('/api/newsletter', require('./routes/newsletter'))
@@ -60,14 +74,20 @@ app.use('/api/settings', require('./routes/settings'))
 app.use('/api/admin', require('./routes/admin'))
 app.use('/api/upload', require('./routes/upload'))
 
-// ---- 404 ----
+// ---- 404 Handler ----
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }))
 
-// ---- Error handler ----
+// ---- Error Handler ----
 app.use((err, req, res, next) => {
   console.error(err)
   res.status(err.status || 500).json({ success: false, message: err.message || 'Server error' })
 })
 
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => console.log(`🚀 LexTrust API running on http://localhost:${PORT}`))
+// ---- Server Listener for Local Dev ----
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000
+  app.listen(PORT, () => console.log(`🚀 LexTrust API running on http://localhost:${PORT}`))
+}
+
+// ---- Export for Vercel Serverless ----
+module.exports = app
