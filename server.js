@@ -15,9 +15,6 @@ connectDB().catch((err) => {
 // ---- Core middleware ----
 app.use(express.json())
 
-// ---- Uploaded images ----
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
-
 const allowedOrigins = (process.env.CLIENT_ORIGIN || '')
   .split(',')
   .map((s) => s.trim())
