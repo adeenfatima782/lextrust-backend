@@ -28,6 +28,10 @@ app.use(
       
       // Allow localhost/127.0.0.1 ports for local development
       if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return callback(null, true)
+
+      // Allow any *.vercel.app subdomain — so it keeps working even if
+      // Vercel changes/renames your project's live domain
+      if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) return callback(null, true)
       
       // Production origins check
       if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
