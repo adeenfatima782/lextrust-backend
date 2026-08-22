@@ -15,6 +15,9 @@ connectDB().catch((err) => {
 // ---- Core middleware ----
 app.use(express.json())
 
+// Serve locally-uploaded images (used when Cloudinary isn't configured)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
 const allowedOrigins = (process.env.CLIENT_ORIGIN || '')
   .split(',')
   .map((s) => s.trim())
@@ -76,6 +79,7 @@ app.use('/api/site-content', require('./routes/siteContent'))
 app.use('/api/settings', require('./routes/settings'))
 app.use('/api/admin', require('./routes/admin'))
 app.use('/api/upload', require('./routes/upload'))
+app.use('/api/notifications', require('./routes/notifications'))
 
 // ---- 404 Handler ----
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }))
